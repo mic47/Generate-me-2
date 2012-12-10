@@ -15,6 +15,7 @@ def dist(c1, c2):
 
 
 def make_regexp(string):
+    # TODO: optimize: replace .?.?.? chains with .{0,3}, replace long chains with *, replace slow reg expressions
     ret = ""
     for c in string:
         if ord(c) == 28:
