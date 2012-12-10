@@ -5,6 +5,7 @@ import sys
 import time
 from graph import Graph
 import re
+from multiprocessing import Pool
 
 def dist(c1, c2):
     if c1 == c2:
@@ -157,7 +158,7 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
     it = list()
     for (mt, sen) in dct.iteritems():
         it.append((len(sen), mt, sen))
-    it.sort()
+    it.sort(reverse=True)
     regexps = dict()
     glob = list()
     ret = list()
@@ -170,15 +171,15 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
         for regexp in regexps[meme_type]:
             n += 1
             sys.stdout.write(
-                "\r[{0}] {1}/{2} expressions in {3} seconds. ({4})".format(
-                    meme_type, n, N, round(time.time() - start), regexp[0:10]))
+                "\r[{0}] {1}/{2} RE in {3} s. ({4})".format(
+                    meme_type, n, N, round(time.time() - start), regexp))
             sys.stdout.flush()
             compiled = re.compile(regexp)
             cnt = dict()
             for (meme, sentences) in dct.iteritems():
                 count = 0
                 for sent in sentences:
-                    if re.search(compiled, sent.lower()) != None:
+                    if compiled.search(sent.lower()) != None:
                         count += 1
                 cnt[meme] = float(count) / float(len(sentences))
             localweight = 0

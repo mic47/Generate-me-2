@@ -27,12 +27,12 @@ class Graph:
             se = self.vertices[ID][0]
             tp = self.vertices[ID][1]
             if tp == "original":
-                tp = "doublecircle"
+                tp = "house"
             else:
-                tp = "circle"
+                tp = "rectangle"
             fp.write("""
                 node [shape = {tp}]; L{ID} [shape = {tp}, label="{label}"];
-            """.format(tp=tp, ID=ID, label=se))
+            """.format(tp=tp, ID=ID, label=se.replace(chr(28), "*").replace(chr(29), "+")))
         for (fr, to, dist) in self.edges:
             fp.write("""
                 L{fr} -> L{to} [label="{dist}"];
