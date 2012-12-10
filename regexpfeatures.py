@@ -17,13 +17,20 @@ def dist(c1, c2):
 def make_regexp(string):
     # TODO: optimize: replace .?.?.? chains with .{0,3}, replace long chains with *, replace slow reg expressions
     ret = ""
+    clen = 0
     for c in string:
-        if ord(c) == 28:
-            ret += '.'
-        elif ord(c) == 29:
-            ret += '.?'
-        else:
-            ret += re.escape(c)
+	if ord(c) == 29:
+	    clen += 1
+	else:
+	    if clen > 0:
+		ret += '.{{0,{0}}}'.format(clen)
+		clen = 0
+	    if ord(c) == 28:
+		ret += '.'
+	    else:
+		ret += re.escape(c)
+    if clen > 0:
+	ret += '.{{0,{0}}}'.format(clen)
     return ret
             
 
