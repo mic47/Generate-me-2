@@ -18,19 +18,20 @@ def make_regexp(string):
     # TODO: optimize: replace .?.?.? chains with .{0,3}, replace long chains with *, replace slow reg expressions
     ret = ""
     clen = 0
+    nlen = 0
     for c in string:
 	if ord(c) == 29:
 	    clen += 1
+	elif ord(c) == 28:
+	    nlen += 1
 	else:
-	    if clen > 0:
-		ret += '.{{0,{0}}}'.format(clen)
+	    if clen + nlen > 0:
+		ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
 		clen = 0
-	    if ord(c) == 28:
-		ret += '.'
-	    else:
-		ret += re.escape(c)
-    if clen > 0:
-	ret += '.{{0,{0}}}'.format(clen)
+		nlen = 0
+	    ret += re.escape(c)
+    if clen + nlen > 0:
+	ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
     return ret
             
 
@@ -78,7 +79,7 @@ def editDistanceString(w1, w2):
             if w1[x] == w2[y]:
                 rets += w1[x]
             else:
-                rets += chr(28) #'*'
+                rets += chr(28) #'*' 
         else:
             rets += chr(29) #'+' 
         dx, dy = P[x][y]
@@ -86,7 +87,27 @@ def editDistanceString(w1, w2):
         y += dy
     if (x == 0 or y == 0) and w1[x] == w2[y]:
         rets += w1[x] 
-    return (ret, rets[::-1])
+    rett = ""
+    clen = 0
+    nlen = 0
+    for c in rets[::-1]:
+	if c == chr(28):
+	    clen += 1
+	elif c == chr(29):
+	    nlen += 1
+	else:
+	    for i in range(clen):
+		rett += chr(28)
+	    for i in range(nlen):
+		rett += chr(29)
+	    clen = 0
+	    nlen = 0
+	    rett += c
+    for i in range(clen):
+	rett += chr(28)
+    for i in range(nlen):
+	rett += chr(29)
+    return (ret, rett)
 
 def cluster(sentences, name):
     G = Graph(sentences)
@@ -166,10 +187,11 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
     it = list()
     for (mt, sen) in dct.iteritems():
         it.append((len(sen), mt, sen))
-    it.sort(reverse=True)
+    it.sort(reverse=False)
     regexps = dict()
     glob = list()
     ret = list()
+    ff = open("memes.csv", "w")
     for (_, meme_type, sentences) in it:
         regexps[meme_type] = cluster(sentences, meme_type)
         N = len(regexps[meme_type])
@@ -200,10 +222,12 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
                 for (_, vv) in cnt.iteritems():
                     globalweight += abs(v - vv)
             glob.append((globalweight, regexp))
+	    ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localweight, globalweight]]) + "\n")
         loc.sort(reverse=True)
         for i in range(min(number_of_words_per_type, len(loc))):
             ret.append(loc[i][1])
         print("\r[{0}] Regular expressions selected in {1} seconds. (best: {2})".format(meme_type, time.time() - start, loc[0][1]))
+    ff.close()
     glob.sort(reverse=True)
     for i in range(min(number_of_words)):
         ret.append(glob[i][1])
