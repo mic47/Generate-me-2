@@ -6,6 +6,7 @@ import time
 from graph import Graph
 import re
 from multiprocessing import Pool
+import algorithm
 
 def dist(c1, c2):
     if c1 == c2:
@@ -187,11 +188,11 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
     it = list()
     for (mt, sen) in dct.iteritems():
         it.append((len(sen), mt, sen))
-    it.sort(reverse=False)
+    it.sort(reverse=True)
     regexps = dict()
     glob = list()
     ret = list()
-    ff = open("memes.csv", "w")
+    ff = open("memes_ig.csv", "w")
     for (_, meme_type, sentences) in it:
         regexps[meme_type] = cluster(sentences, meme_type)
         N = len(regexps[meme_type])
@@ -199,6 +200,7 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
         start = time.time()
         loc = list()
         for regexp in regexps[meme_type]:
+	    re.purge()
             n += 1
             sys.stdout.write(
                 "\r[{0}] {1}/{2} RE in {3} s. ({4})".format(
@@ -206,30 +208,49 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
             sys.stdout.flush()
             compiled = re.compile(regexp)
             cnt = dict()
-            for (meme, sentences) in dct.iteritems():
+	    cnt_in = dict()
+	    cnt_out = dict()
+            for (meme, _sentences) in dct.iteritems():
                 count = 0
-                for sent in sentences:
+		count_out = 0
+                for sent in _sentences:
                     if compiled.search(sent.lower()) != None:
                         count += 1
-                cnt[meme] = float(count) / float(len(sentences))
+		    else:
+			count_out += 1
+		cnt_in[meme] = count
+		cnt_out[meme] = count_out
+                cnt[meme] = float(count) / float(len(_sentences))
+	    # compute entropy
+	    globalentropy = algorithm.informationGain([
+		[e for (_, e) in cnt_in.iteritems()],
+		[e for (_, e) in cnt_out.iteritems()], 
+	    ])
+	    sum_in = sum([e for (_, e) in cnt_in.iteritems()])
+	    sum_out = sum([e for (_, e) in cnt_out.iteritems()])
+	    localentropy = algorithm.informationGain([
+		[cnt_in[meme_type], sum_in - cnt_in[meme_type]],
+		[cnt_out[meme_type], sum_out - cnt_out[meme_type]],
+	    ])
+
             localweight = 0
             mine = cnt[meme_type]
             for (meme, val) in cnt.iteritems():
                 localweight += mine - val
-            loc.append((localweight, regexp))
+            loc.append((localentropy, regexp))
             globalweight = 0
             for (_, v) in cnt.iteritems():
                 for (_, vv) in cnt.iteritems():
                     globalweight += abs(v - vv)
-            glob.append((globalweight, regexp))
-	    ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localweight, globalweight]]) + "\n")
+            glob.append((globalentropy, regexp))
+	    ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localentropy, globalentropy, localweight, globalweight]]) + "\n")
         loc.sort(reverse=True)
         for i in range(min(number_of_words_per_type, len(loc))):
             ret.append(loc[i][1])
         print("\r[{0}] Regular expressions selected in {1} seconds. (best: {2})".format(meme_type, time.time() - start, loc[0][1]))
     ff.close()
     glob.sort(reverse=True)
-    for i in range(min(number_of_words)):
+    for i in range(min(number_of_words, len(glob))):
         ret.append(glob[i][1])
     return ret
             
