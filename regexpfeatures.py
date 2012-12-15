@@ -21,18 +21,18 @@ def make_regexp(string):
     clen = 0
     nlen = 0
     for c in string:
-	if ord(c) == 29:
-	    clen += 1
-	elif ord(c) == 28:
-	    nlen += 1
-	else:
-	    if clen + nlen > 0:
-		ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
-		clen = 0
-		nlen = 0
-	    ret += re.escape(c)
+        if ord(c) == 29:
+            clen += 1
+        elif ord(c) == 28:
+            nlen += 1
+        else:
+            if clen + nlen > 0:
+                ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
+                clen = 0
+                nlen = 0
+            ret += re.escape(c)
     if clen + nlen > 0:
-	ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
+        ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
     return ret
             
 
@@ -92,22 +92,22 @@ def editDistanceString(w1, w2):
     clen = 0
     nlen = 0
     for c in rets[::-1]:
-	if c == chr(28):
-	    clen += 1
-	elif c == chr(29):
-	    nlen += 1
-	else:
-	    for i in range(clen):
-		rett += chr(28)
-	    for i in range(nlen):
-		rett += chr(29)
-	    clen = 0
-	    nlen = 0
-	    rett += c
+        if c == chr(28):
+            clen += 1
+        elif c == chr(29):
+            nlen += 1
+        else:
+            for i in range(clen):
+                rett += chr(28)
+            for i in range(nlen):
+                rett += chr(29)
+            clen = 0
+            nlen = 0
+            rett += c
     for i in range(clen):
-	rett += chr(28)
+        rett += chr(28)
     for i in range(nlen):
-	rett += chr(29)
+        rett += chr(29)
     return (ret, rett)
 
 def cluster(sentences, name):
@@ -200,7 +200,7 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
         start = time.time()
         loc = list()
         for regexp in regexps[meme_type]:
-	    re.purge()
+            re.purge()
             n += 1
             sys.stdout.write(
                 "\r[{0}] {1}/{2} RE in {3} s. ({4})".format(
@@ -208,30 +208,30 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
             sys.stdout.flush()
             compiled = re.compile(regexp)
             cnt = dict()
-	    cnt_in = dict()
-	    cnt_out = dict()
+            cnt_in = dict()
+            cnt_out = dict()
             for (meme, _sentences) in dct.iteritems():
                 count = 0
-		count_out = 0
+                count_out = 0
                 for sent in _sentences:
                     if compiled.search(sent.lower()) != None:
                         count += 1
-		    else:
-			count_out += 1
-		cnt_in[meme] = count
-		cnt_out[meme] = count_out
+                    else:
+                        count_out += 1
+                cnt_in[meme] = count
+                cnt_out[meme] = count_out
                 cnt[meme] = float(count) / float(len(_sentences))
-	    # compute entropy
-	    globalentropy = algorithm.informationGain([
-		[e for (_, e) in cnt_in.iteritems()],
-		[e for (_, e) in cnt_out.iteritems()], 
-	    ])
-	    sum_in = sum([e for (_, e) in cnt_in.iteritems()])
-	    sum_out = sum([e for (_, e) in cnt_out.iteritems()])
-	    localentropy = algorithm.informationGain([
-		[cnt_in[meme_type], sum_in - cnt_in[meme_type]],
-		[cnt_out[meme_type], sum_out - cnt_out[meme_type]],
-	    ])
+            # compute entropy
+            globalentropy = algorithm.informationGain([
+                [e for (_, e) in cnt_in.iteritems()],
+                [e for (_, e) in cnt_out.iteritems()], 
+            ])
+            sum_in = sum([e for (_, e) in cnt_in.iteritems()])
+            sum_out = sum([e for (_, e) in cnt_out.iteritems()])
+            localentropy = algorithm.informationGain([
+                [cnt_in[meme_type], sum_in - cnt_in[meme_type]],
+                [cnt_out[meme_type], sum_out - cnt_out[meme_type]],
+            ])
 
             localweight = 0
             mine = cnt[meme_type]
@@ -243,7 +243,7 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
                 for (_, vv) in cnt.iteritems():
                     globalweight += abs(v - vv)
             glob.append((globalentropy, regexp))
-	    ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localentropy, globalentropy, localweight, globalweight]]) + "\n")
+            ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localentropy, globalentropy, localweight, globalweight]]) + "\n")
         loc.sort(reverse=True)
         for i in range(min(number_of_words_per_type, len(loc))):
             ret.append(loc[i][1])
