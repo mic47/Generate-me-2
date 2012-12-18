@@ -36,7 +36,7 @@ while True:
 	compile_time += time.time() - t
 	t = time.time()
 	for s in strings:
-	    if c.search(s):
+	    if c.match(s):
 		count += 1
 	search_time += time.time() - t
     print('\r{0}        {1}        {2}        {4}        {5}{3}'.format(cnt,time.time() - now, count, ' '*100, compile_time, search_time))

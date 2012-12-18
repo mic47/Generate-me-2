@@ -21,18 +21,18 @@ def make_regexp(string):
     clen = 0
     nlen = 0
     for c in string:
-	if ord(c) == 29:
-	    clen += 1
-	elif ord(c) == 28:
-	    nlen += 1
-	else:
-	    if clen + nlen > 0:
-		ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
-		clen = 0
-		nlen = 0
-	    ret += re.escape(c)
+        if ord(c) == 29:
+            clen += 1
+        elif ord(c) == 28:
+            nlen += 1
+        else:
+            if clen + nlen > 0:
+                ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
+                clen = 0
+                nlen = 0
+            ret += re.escape(c)
     if clen + nlen > 0:
-	ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
+        ret += '.{{{1},{0}}}'.format(clen + nlen, nlen)
     return ret
             
 
@@ -92,23 +92,25 @@ def editDistanceString(w1, w2):
     clen = 0
     nlen = 0
     for c in rets[::-1]:
-	if c == chr(28):
-	    clen += 1
-	elif c == chr(29):
-	    nlen += 1
-	else:
-	    for i in range(clen):
-		rett += chr(28)
-	    for i in range(nlen):
-		rett += chr(29)
-	    clen = 0
-	    nlen = 0
-	    rett += c
+        if c == chr(28):
+            clen += 1
+        elif c == chr(29):
+            nlen += 1
+        else:
+            for i in range(clen):
+                rett += chr(28)
+            for i in range(nlen):
+                rett += chr(29)
+            clen = 0
+            nlen = 0
+            rett += c
     for i in range(clen):
-	rett += chr(28)
+        rett += chr(28)
     for i in range(nlen):
-	rett += chr(29)
+        rett += chr(29)
     return (ret, rett)
+
+
 
 def cluster(sentences, name):
     G = Graph(sentences)
@@ -182,77 +184,126 @@ def cluster(sentences, name):
     G.write(f)
     f.close()
     return [make_regexp(x) for x in G.getAllInternalNodes()]
-                    
+
+def replaceNotEqual(L, what, replacement = "_"):
+    return [[what if x == what else replacement for x in lst] for lst in L] 
+
+class regExpChooser:
+    
+
+    def __init__(self):
+        self.types = list()
+        self.regexps = list()
+        self.used = list()
+        self.search_results = list()
+
+
+    def add_types(self, types):
+        self.types.extend(types)
+
+
+    def add_regexp(self, regexp, search_result):
+        self.regexps.append(regexp)
+        self.search_results.append([search_result])
+        self.used.append(False)
+
+
+    def split_by_row(self, row_number):
+        newtypes = list()
+        newresults = [list() for _ in range(len(self.regexps))]
+        for tpin in range(len(self.types)):
+            newt = [list(), list()]
+            newr = [[list(), list()] for _ in range(len(self.regexps))]
+            for crin in range(len(self.types[tpin])):
+                index = self.search_results[row_number][tpin][crin]
+                newt[index].append(self.types[tpin][crin])
+                for i in range(len(self.regexps)):
+                    newr[i][index].append(
+                        self.search_results[i][tpin][crin])
+            newtypes.extend(newt)
+            for i in range(len(self.regexps)):
+                newresults[i].extend(newr[i])
+        self.types = newtypes
+        self.search_results = newresults
+
+    def compute_ig(self):
+        ret = list()
+        for i in range(len(self.regexps)):
+            entropyin = list()
+            for j in range(len(self.types)):
+                counts = [defaultdict(int), defaultdict(int)]
+                for k in range(len(self.types[j])):
+                    counts[self.search_results[i][j][k]][self.types[j][k]] += 1
+                for k in range(len(counts)):
+                    counts[k] = [e for (_, e) in counts[k].iteritems()]
+                entropyin.extend(counts)
+            #print("EntropyInput", self.regexps[i], entropyin)#, self.search_results[i])
+            ret.append(algorithm.informationGain(entropyin))
+        return ret
+
+
+    def getBest(self, number=None):
+        if number == None:
+            number = len(self.regexps)
+        ret = list()
+        for _ in range(number):
+            gains = self.compute_ig()
+            #for i in range(len(gains)):
+            #    print(gains[i], self.regexps[i])
+            bestRegExp = algorithm.argmax(gains)
+            ret.append(self.regexps[bestRegExp])
+            print("Selected: ", bestRegExp, self.regexps[bestRegExp])
+            self.split_by_row(bestRegExp)
+        return ret
+    
+
 
 def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
     it = list()
     for (mt, sen) in dct.iteritems():
         it.append((len(sen), mt, sen))
-    it.sort(reverse=True)
+    it.sort(reverse=False)
     regexps = dict()
-    glob = list()
     ret = list()
-    ff = open("memes_ig.csv", "w")
+    types = list()
+    for (_, meme, _sentences) in it:
+        types.extend([meme for _ in _sentences])
+    types = [types]
+    glob = regExpChooser()
+    glob.add_types(types)
     for (_, meme_type, sentences) in it:
         regexps[meme_type] = cluster(sentences, meme_type)
         N = len(regexps[meme_type])
         n = 0
         start = time.time()
-        loc = list()
+        loc = regExpChooser()
+        loc.add_types(replaceNotEqual(types, meme_type))
         for regexp in regexps[meme_type]:
-	    re.purge()
+            re.purge()
             n += 1
             sys.stdout.write(
                 "\r[{0}] {1}/{2} RE in {3} s. ({4})".format(
-                    meme_type, n, N, round(time.time() - start), regexp))
+                    meme_type,
+                    n,
+                    N,
+                    round(time.time() - start),
+                    regexp
+                ))
             sys.stdout.flush()
             compiled = re.compile(regexp)
-            cnt = dict()
-	    cnt_in = dict()
-	    cnt_out = dict()
-            for (meme, _sentences) in dct.iteritems():
-                count = 0
-		count_out = 0
+            search_result = list()
+            for (_, meme, _sentences) in it: 
                 for sent in _sentences:
-                    if compiled.search(sent.lower()) != None:
-                        count += 1
-		    else:
-			count_out += 1
-		cnt_in[meme] = count
-		cnt_out[meme] = count_out
-                cnt[meme] = float(count) / float(len(_sentences))
-	    # compute entropy
-	    globalentropy = algorithm.informationGain([
-		[e for (_, e) in cnt_in.iteritems()],
-		[e for (_, e) in cnt_out.iteritems()], 
-	    ])
-	    sum_in = sum([e for (_, e) in cnt_in.iteritems()])
-	    sum_out = sum([e for (_, e) in cnt_out.iteritems()])
-	    localentropy = algorithm.informationGain([
-		[cnt_in[meme_type], sum_in - cnt_in[meme_type]],
-		[cnt_out[meme_type], sum_out - cnt_out[meme_type]],
-	    ])
-
-            localweight = 0
-            mine = cnt[meme_type]
-            for (meme, val) in cnt.iteritems():
-                localweight += mine - val
-            loc.append((localentropy, regexp))
-            globalweight = 0
-            for (_, v) in cnt.iteritems():
-                for (_, vv) in cnt.iteritems():
-                    globalweight += abs(v - vv)
-            glob.append((globalentropy, regexp))
-	    ff.write("\t".join([str(xxx) for xxx in [meme_type, regexp, localentropy, globalentropy, localweight, globalweight]]) + "\n")
-        loc.sort(reverse=True)
-        for i in range(min(number_of_words_per_type, len(loc))):
-            ret.append(loc[i][1])
-        print("\r[{0}] Regular expressions selected in {1} seconds. (best: {2})".format(meme_type, time.time() - start, loc[0][1]))
-    ff.close()
-    glob.sort(reverse=True)
-    for i in range(min(number_of_words, len(glob))):
-        ret.append(glob[i][1])
+                    search_result.append(
+                        1 if compiled.search(sent.lower()) != None else 0)
+            loc.add_regexp(regexp, search_result)
+            glob.add_regexp(regexp, search_result)
+        selection = loc.getBest(number_of_words_per_type)
+        ret.extend(selection)
+        print("\r[{0}] Regular expressions selected in {1} seconds. (best: {2})".format(
+            meme_type,
+            time.time() - start,
+            selection[0])
+        )
+    ret.extend(glob.getBest(number_of_words))
     return ret
-            
-            
-            

@@ -43,3 +43,18 @@ def informationGain(split):
     ret /= float(total)
     ret += entropy([x for (_, x) in all.iteritems()])
     return ret
+
+def argmax(l):
+    if type(l) == list:
+        iter = ((i, l[i]) for i in range(len(l)))
+    elif type(l) == dict:
+        iter = range.iteritems()
+    else:
+        raise "Bad type";
+    mx = None
+    it = -1
+    for (i, val) in iter:
+        if val >= mx:
+            mx = val
+            it = i
+    return it
