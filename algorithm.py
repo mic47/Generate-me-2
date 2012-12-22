@@ -25,9 +25,9 @@ def entropy(E):
     ret = 0.0
     all = float(sum(E))
     for e in E:
-	if e > 0:
-	    ee = float(e)/ all
-	    ret -= ee * math.log(ee)
+        if e > 0:
+            ee = float(e)/ all
+            ret -= ee * math.log(ee)
     return ret
 
 def informationGain(split):
@@ -35,11 +35,11 @@ def informationGain(split):
     total = 0.0
     ret = 0.0
     for s in split:
-	a = sum(s)
-	total += a
-	ret -= entropy(s) * a
-	for i in range(len(s)):
-	    all[i] += s[i]
+        a = sum(s)
+        total += a
+        ret -= entropy(s) * a
+        for i in range(len(s)):
+            all[i] += s[i]
     ret /= float(total)
     ret += entropy([x for (_, x) in all.iteritems()])
     return ret
