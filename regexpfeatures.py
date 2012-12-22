@@ -223,6 +223,8 @@ class regExpChooser:
             newtypes.extend(newt)
             for i in range(len(self.regexps)):
                 newresults[i].extend(newr[i])
+        del self.types
+        del self.search_results
         self.types = newtypes
         self.search_results = newresults
 
@@ -258,20 +260,26 @@ class regExpChooser:
     
 
 
-def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
+def getRegexpFeatures(dct, number_of_words_per_type, number_of_words, select = None):
     it = list()
     for (mt, sen) in dct.iteritems():
         it.append((len(sen), mt, sen))
     it.sort(reverse=False)
+    itt = list()
+    for (l, mt, sen) in it:
+        random.shuffle(sen)
+        itt.append((l, mt, sen[0:1000]))
     regexps = dict()
     ret = list()
     types = list()
-    for (_, meme, _sentences) in it:
+    for (_, meme, _sentences) in itt:
         types.extend([meme for _ in _sentences])
     types = [types]
-    glob = regExpChooser()
-    glob.add_types(types)
+    #glob = regExpChooser()
+    #glob.add_types(types)
     for (_, meme_type, sentences) in it:
+        if select != None and meme_type != select:
+            continue
         regexps[meme_type] = cluster(sentences, meme_type)
         N = len(regexps[meme_type])
         n = 0
@@ -292,12 +300,12 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
             sys.stdout.flush()
             compiled = re.compile(regexp)
             search_result = list()
-            for (_, meme, _sentences) in it: 
+            for (_, meme, _sentences) in itt: 
                 for sent in _sentences:
                     search_result.append(
                         1 if compiled.search(sent.lower()) != None else 0)
             loc.add_regexp(regexp, search_result)
-            glob.add_regexp(regexp, search_result)
+            #glob.add_regexp(regexp, search_result)
         selection = loc.getBest(number_of_words_per_type)
         ret.extend(selection)
         print("\r[{0}] Regular expressions selected in {1} seconds. (best: {2})".format(
@@ -305,5 +313,5 @@ def getRegexpFeatures(dct, number_of_words_per_type, number_of_words):
             time.time() - start,
             selection[0])
         )
-    ret.extend(glob.getBest(number_of_words))
+    #ret.extend(glob.getBest(number_of_words))
     return ret
