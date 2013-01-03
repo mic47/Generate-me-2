@@ -3,7 +3,8 @@ from collections import defaultdict
 from tools import normalize_type
 import json
 from bagofwords import getBagOfWordsFeatures
-from regexpfeatures import getRegexpFeatures
+from regexpfeatures import getRegexpFeatures, clusterAll
+
 
 if len(sys.argv) < 5:
     print ("Not enough arguments")
@@ -66,6 +67,11 @@ else:
 
 # Find features
 features = dict()
+
+print(len(memes))
+clusterAll(memes)
+exit(0)
+
 
 features['regexp'] = getRegexpFeatures(memes, 10, 10, select)
 print("Graphs are written")

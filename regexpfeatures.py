@@ -121,15 +121,22 @@ def cluster(sentences, name):
     start = time.time()
     outofpool = set()
     while len(pool) > 1:
+        if n - len(pool) > 0:
+            eta = int(round((time.time() - start) / (n - len(pool)) * len(pool)))
+        else:
+            eta = 0
+        eta_s = eta % 60
+        eta_m = (eta / 60) % 60
+        eta_h = eta / 3600
         sys.stdout.write(
-            "\r[{2}] (iterations: {0}), progress: {1}/{3} ({4} seconds)".format(
-                prevl, len(pool), name, n, round(time.time() - start)))
+            "\r[{2}] (iterations: {0}), progress: {1}/{3} ({4} seconds, ETA: {5}:{6}:{7})".format(
+                prevl, len(pool), name, n, round(time.time() - start), eta_h, eta_m, eta_s))
         sys.stdout.flush()
         prevl = 0
-        best = 0;
+        best = -100;
         bestpair = (-1, -1)
         notchanged = 0
-        while notchanged < 1000:
+        while notchanged < 1000:    
             prevl += 1
             i = random.randint(0, len(pool) - 1)
             j = random.randint(0, len(pool) - 1)
@@ -139,8 +146,8 @@ def cluster(sentences, name):
             vi = pool[j]
             u = G.getVertex(ui)
             v = G.getVertex(vi)
-            dp = u[0]
-            vp = v[0]
+            dp = u.sentence
+            vp = v.sentence
             if ui == vi:
                 continue
             notchanged += 1
@@ -178,11 +185,21 @@ def cluster(sentences, name):
             if j < len(pool):
                 pool[j] = pool[len(pool) - 1]
                 pool.pop()
+    for i in pool:
+        newID = G.getVertexId("")
+        G.addEdge(i, newID, 0)
+        
     print("\r[{0}] {1} sequences clustered in {2} seconds.".format(
         name, len(sentences), time.time() - start))
+    G.memeClosure()
+    f = open(name + "_graph.js", "w")
+    G.writeAsJSON(f)
+    f.close()
     f = open(name + "_graph.dot", "w")
     G.write(f)
     f.close()
+    print(pool)
+    print(len(pool))
     return [make_regexp(x) for x in G.getAllInternalNodes()]
 
 def replaceNotEqual(L, what, replacement = "_"):
@@ -258,6 +275,13 @@ class regExpChooser:
             self.split_by_row(bestRegExp)
         return ret
     
+
+def clusterAll(dct):
+    sentences = list()
+    for (mt, sen) in dct.iteritems():
+        for s in sen:
+            sentences.append((s, mt))
+    cluster(sentences, "all")
 
 
 def getRegexpFeatures(dct, number_of_words_per_type, number_of_words, select = None):
